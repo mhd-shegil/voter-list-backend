@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // Load service account credentials
-const credentials = JSON.parse(fs.readFileSync("service-account.json"));
+const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const auth = new google.auth.JWT(
   credentials.client_email,
