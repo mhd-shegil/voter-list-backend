@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🧾 Load service account credentials from Render environment
+// 🧾 Load Google Service Account
 const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 const auth = new google.auth.JWT(
@@ -17,46 +17,20 @@ const auth = new google.auth.JWT(
 );
 
 const sheets = google.sheets({ version: "v4", auth });
+const SPREADSHEET_ID = "1GbJnrB2dTeOdQkNirDW_081aEB_shsENPoDh2LRj_v4"; // ✅ your sheet ID
 
-// ✅ Replace with your actual Google Sheet ID
-const SPREADSHEET_ID = "1GbJnrB2dTeOdQkNirDW_081aEB_shsENPoDh2LRj_v4";
-
-// 🧩 Health Check Route
+// 🩺 Health Check
 app.get("/", (req, res) => {
-  res.send("✅ Voter List Backend is running!");
+  res.send("✅ Voter List Backend is running with two-way sync!");
 });
 
-// 🧾 Add a single resident (for individual entry)
-app.post("/add-resident", async (req, res) => {
-  const { name, guardian, ward, phone, category, remark, visit } = req.body;
-
-  try {
-    const values = [[Date.now(), name, guardian, ward, phone, category, remark, visit]];
-
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Sheet1!A:H",
-      valueInputOption: "USER_ENTERED",
-      requestBody: { values },
-    });
-
-    res.json({ success: true, message: "Resident added successfully!" });
-  } catch (err) {
-    console.error("❌ Error adding resident:", err);
-    res.status(500).json({ error: "Failed to add resident" });
-  }
-});
-
-// 🔄 Sync multiple residents (for full upload/export sync)
+// 🧾 Sync multiple residents → write to Sheet
 app.post("/sync-residents", async (req, res) => {
   try {
     const rows = req.body;
-
     if (!rows || !Array.isArray(rows)) {
       return res.status(400).json({ error: "Invalid data format" });
     }
-
-    console.log(`📤 Syncing ${rows.length} residents to Google Sheets...`);
 
     const values = rows.map((r) => [
       r.serialNo || "",
@@ -79,7 +53,6 @@ app.post("/sync-residents", async (req, res) => {
       requestBody: { values },
     });
 
-    console.log("✅ Sync complete!");
     res.json({ success: true, count: rows.length });
   } catch (err) {
     console.error("❌ Sync failed:", err);
@@ -87,7 +60,37 @@ app.post("/sync-residents", async (req, res) => {
   }
 });
 
-// ⚙️ Dynamic Port for Render
+// 🧠 Fetch all data from Google Sheet → send to frontend
+app.get("/fetch-residents", async (req, res) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Sheet1!A2:K",
+    });
+
+    const rows = response.data.values || [];
+    const residents = rows.map((row, i) => ({
+      id: `resident-${i}`,
+      serialNo: row[0] || "",
+      name: row[1] || "",
+      guardianName: row[2] || "",
+      wardHouseNo: row[3] || "",
+      houseName: row[4] || "",
+      genderAge: row[5] || "",
+      mobileNumber: row[6] || "",
+      phoneNumber: row[7] || "",
+      visitCount: Number(row[8]) || 0,
+      category: row[9] || "",
+      remark: row[10] || "",
+    }));
+
+    res.json({ success: true, residents });
+  } catch (err) {
+    console.error("❌ Fetch failed:", err);
+    res.status(500).json({ error: "Failed to fetch residents from Google Sheet" });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`✅ Server running on port ${PORT}`)
