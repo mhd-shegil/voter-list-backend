@@ -19,7 +19,7 @@ const auth = new google.auth.JWT(
 
 const sheets = google.sheets({ version: "v4", auth });
 
-const SPREADSHEET_ID = "YOUR_SHEET_ID_HERE"; // Replace with your Sheet ID
+const SPREADSHEET_ID = "1GbJnrB2dTeOdQkNirDW_081aEB_shsENPoDh2LRj_v4"; // Replace with your Sheet ID
 
 // 🧾 Endpoint to add a new resident row
 app.post("/add-resident", async (req, res) => {
