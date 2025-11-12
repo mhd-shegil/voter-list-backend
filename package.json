@@ -1,0 +1,15 @@
+{
+  "name": "voter-list-backend",
+  "version": "1.0.0",
+  "description": "Backend API for voter list connected to Google Sheets",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "googleapis": "^144.0.0",
+    "cors": "^2.8.5"
+  }
+}
